@@ -18,13 +18,14 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/albanie/watchlogs",
     packages=setuptools.find_packages(),
+    python_requires=">=3.6",
     install_requires=[
         "colored",
         "seaborn",
         "pyinotify",
     ],
     classifiers=[
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.6",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
