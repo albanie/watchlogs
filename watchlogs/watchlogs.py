@@ -8,8 +8,9 @@ import time
 import argparse
 from pathlib import Path
 
-import colored
 import seaborn as sns
+
+import colored
 import pyinotify
 from pyinotify import IN_ATTRIB, IN_MODIFY
 
@@ -75,6 +76,9 @@ class Watcher(pyinotify.ProcessEvent):
 
     def process_default(self, event):
         """Process any form of inotify event.
+
+        The implementation was inspired by this StackOverflow comment:
+        https://stackoverflow.com/a/5725309.
         """
         path = str(Path(event.pathname).resolve())
         state = None

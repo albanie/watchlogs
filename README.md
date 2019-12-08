@@ -6,6 +6,8 @@
 
 `watchlogs --log_files /path/to/log1.txt,/path/to/log2.txt,....`
 
+ <img src="misc/demo.gif" height="350">
+
 ### Installation
 
 Installation can be handled via `pip install watchlogs`.  However, if you prefer to hack around with the source code, it's only a [single file](watchlogs/watchlogs.py).
@@ -36,7 +38,6 @@ Since I only use the first two actions while logging, this has sufficed for my n
 * `IN_MODIFY` events to detect when new text is added to the file.
 
 
-The implementation was inspired by this StackOverflow [comment](https://stackoverflow.com/a/5725309).
 
 ### Related projects
 You may be interested in:

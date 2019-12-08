@@ -6,7 +6,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="watchlogs",
-    version="0.1.1",
+    version="0.1.3.3",
     entry_points={
         "console_scripts": [
             "watchlogs=watchlogs.watchlogs:main",
@@ -17,7 +17,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/albanie/watchlogs",
-    packages=setuptools.find_packages(),
+    packages=["watchlogs"],
     python_requires=">=3.6",
     install_requires=[
         "colored",
