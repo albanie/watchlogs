@@ -33,10 +33,13 @@ Install via `pip install watchlogs`.  If you prefer to hack around with the sour
 
 ### Dependencies
 
+`watchglogs` is only supported for Linux (due to its usage of the `inotify` API).
+
 * `Python >= 3.6`
 * `seaborn`
 * `colored`
 * `pyinotify`
+
 
 
 ### Related projects
