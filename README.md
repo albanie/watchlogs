@@ -1,6 +1,6 @@
 ## watchlogs
 
-`watchlogs` is a simple python utility for watching multilpe log files and interleaving their output in a manner that aims to achieve the functionality of `tail -F`, but with more colour.
+`watchlogs` is a simple command line utility for watching multilpe log files and interleaving their contents to `stdout` as each log is appended to.  It aims to achieve the functionality of `tail -F`, but with more colour.
 
 ### Usage
 
@@ -10,7 +10,7 @@
 
 ### Installation
 
-Install via `pip install watchlogs`.  If you prefer to hack around with the source code, it's only a [single file](watchlogs/watchlogs.py).
+Install via `pip install watchlogs`.  If you prefer to hack around with the source code, it's a [single python file](watchlogs/watchlogs.py).
 
 ### Behaviour
 
