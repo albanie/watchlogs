@@ -26,22 +26,12 @@ Install via `pip install watchlogs`.  If you prefer to hack around with the sour
 ### Implementation
 
 
-`watchlogs` uses the [pyinotify](https://github.com/seb-m/pyinotify) library to monitor OS events.  In particular, it monitors for:
+`watchlogs` uses the [pygtail](https://github.com/bgreenlee/pygtail) library to monitor OS events.  
 
-* `IN_ATTRIB` events to handle log rotation (or files being moved onto the current watches).
-* `IN_MODIFY` events to detect when new text is added to the file.
 
 ### Dependencies
-
-`watchglogs` is only supported for Linux (due to its usage of the `inotify` API).
 
 * `Python >= 3.6`
 * `seaborn`
 * `colored`
-* `pyinotify`
-
-
-
-### Related projects
-If `watchlogs` doesn't meet your needs, you may be interested in:
-* [pygtail](https://github.com/bgreenlee/pygtail)
+* `pygtail`
