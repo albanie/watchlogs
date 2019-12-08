@@ -21,6 +21,7 @@ class Watcher:
         self._watched_logs = {}
         self.verbose = verbose
         colors = sns.color_palette("husl", len(watched_logs)).as_hex()
+        self.last_path = None
 
         # read contents of existing logs
         for path, color in zip(watched_logs, colors):
@@ -32,17 +33,19 @@ class Watcher:
                 "color": color,
                 "pygtail": Pygtail(str(path))
             }
-            # time.sleep(0.1)
             
-
     def log_content(self, path, lines, last_mod=False):
         color = self._watched_logs[path]["color"]
         for line in lines:
-            summary = f"{path} >>> {line}"
+            summary = ""
+            if path != self.last_path:
+                summary += f"{path} >>>\n"
+            summary += line
             if last_mod:
                 summary = f"[stale log] ({last_mod}): {summary}"
             print(colored.stylize(summary, colored.fg(color)), flush=True)
         sys.stdout.flush()
+        self.last_path = path
 
     def watch_log(self, path):
         while True:
