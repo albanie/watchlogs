@@ -76,8 +76,8 @@ class Watcher:
             if last_mod:
                 summary = f"[stale log] ({last_mod}): {summary}"
             print(colored.stylize(summary, colored.fg(color)), flush=True)
+            self.last_path = path
         sys.stdout.flush()
-        self.last_path = path
 
     def watch_log(self, path):
         with open(path, "r") as f:
@@ -102,9 +102,8 @@ class Watcher:
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--log_files", required=True,
-                        help="comma-separated list of logfiles to watch")
+    parser = argparse.ArgumentParser(description="watchlogs tool")
+    parser.add_argument("log_files", help="comma-separated list of logfiles to watch")
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args()
     watched_logs = args.log_files.split(",")
