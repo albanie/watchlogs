@@ -5,17 +5,21 @@ NOTE: We apply a small monkey patch to Pygtail to let us handle decoding errors 
 gracefully.
 """
 
-import os
 import sys
 import time
+import math
 import argparse
 import datetime
 import threading
+import numpy as np
 from pathlib import Path
 
 import colored
 import seaborn as sns
 from pygtail import Pygtail
+
+import humanize
+import psutil
 
 
 # =============================================================
@@ -47,11 +51,22 @@ def _get_next_line(self):
 Pygtail._get_next_line = _get_next_line
 
 
+def memory_summary():
+    vmem = psutil.virtual_memory()
+    msg = (
+        f">>> Currently using {vmem.percent}% of system memory "
+        f"{humanize.naturalsize(vmem.used)}/{humanize.naturalsize(vmem.available)}"
+    )
+    print(msg)
+
+
 class Watcher:
 
-    def __init__(self, watched_logs, verbose=False):
+    def __init__(self, watched_logs, conserve_resources, heartbeat, verbose=False):
         self._watched_logs = {}
         self.verbose = verbose
+        self.heartbeat = heartbeat
+        self.conserve_resources = conserve_resources
         colors = sns.color_palette("husl", len(watched_logs)).as_hex()
         self.last_path = None
 
@@ -77,37 +92,77 @@ class Watcher:
                 summary = f"[stale log] ({last_mod}): {summary}"
             print(colored.stylize(summary, colored.fg(color)), flush=True)
             self.last_path = path
-        sys.stdout.flush()
 
-    def watch_log(self, path):
+    def watch_log(self, path, watcher_idx, total_watchers):
         with open(path, "r") as f:
             lines = f.read().splitlines()
         self.log_content(path, lines)
+        num_digits = int(np.ceil(math.log(total_watchers, 10)))
+        latest = {"line": lines[-1], "tic": time.time()}
         while True:
-            for line in self._watched_logs[path]["pygtail"]:
-                lines = [line.rstrip()]
-                self.log_content(path, lines)
+            if self.heartbeat:
+                if latest["line"] == lines[-1]:
+                    delta = time.time() - latest["tic"]
+                    duration = time.strftime('%Hh%Mm%Ss', time.gmtime(delta))
+                    watcher_str = f"{watcher_idx}".zfill(num_digits)
+                    summary = f"Log {watcher_str}/{total_watchers}"
+                    msg = f"\r{summary} has had no update for {duration}"
+                    print(msg, end="", flush=True)
+            if self.conserve_resources:
+                time.sleep(1)
+            try:
+                for line in self._watched_logs[path]["pygtail"]:
+                    lines = [line.rstrip()]
+                    self.log_content(path, lines)
+                    latest = {"line": lines[-1], "tic": time.time()}
+            except FileNotFoundError:
+                msg = f"Log at {path} has been removed, exiting watcher thread..."
+                print(msg, flush=True)
+                sys.exit()
 
     def run(self):
         if len(self._watched_logs) > 1:
             threads = []
-            for path in self._watched_logs:
-                x = threading.Thread(target=self.watch_log, args=(path,))
+            total = len(self._watched_logs)
+            for ii, path in enumerate(self._watched_logs):
+                x = threading.Thread(target=self.watch_log, args=(path, ii, total))
                 threads.append(x)
                 x.start()
             for x in threads:
                 x.join()
         else:
-            self.watch_log(list(self._watched_logs.keys())[0])
+            path = list(self._watched_logs.keys())[0]
+            self.watch_log(path, watcher_idx=0, total_watchers=1)
 
 
 def main():
     parser = argparse.ArgumentParser(description="watchlogs tool")
     parser.add_argument("log_files", help="comma-separated list of logfiles to watch")
+    parser.add_argument("--pattern",
+                        help=("if supplied, --log_files should point to a directory and "
+                              "`pattern` will be used to glob for files"))
+    parser.add_argument("--conserve_resources", type=int, default=1,
+                        help=("if true, add a short sleep between log checks to reduce"
+                              "CPU load"))
+    parser.add_argument("--heartbeat", type=int, default=1,
+                        help=("if true, print out markers showing that the log watching"
+                              "is still active"))
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args()
-    watched_logs = args.log_files.split(",")
-    Watcher(watched_logs, verbose=args.verbose).run()
+    if args.pattern:
+        msg = "if args.pattern is supplied, args.log_files should point to a directory"
+        assert Path(args.log_files).is_dir(), msg
+        watched_logs = sorted(list(Path(args.log_files).glob(f"*{args.pattern}")))
+        print(f"Found {len(watched_logs)} matching pattern: {args.pattern}")
+    else:
+        watched_logs = args.log_files.split(",")
+    memory_summary()
+    Watcher(
+        verbose=args.verbose,
+        watched_logs=watched_logs,
+        heartbeat=args.heartbeat,
+        conserve_resources=args.conserve_resources,
+    ).run()
 
 
 if __name__ == "__main__":

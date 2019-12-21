@@ -8,7 +8,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="watchlogs",
-    version="0.1.3.10",
+    version="0.1.3.11",
     entry_points={
         "console_scripts": [
             "watchlogs=watchlogs.watchlogs:main",
