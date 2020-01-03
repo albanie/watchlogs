@@ -98,6 +98,8 @@ class Watcher:
             lines = f.read().splitlines()
         self.log_content(path, lines)
         num_digits = int(np.ceil(math.log(total_watchers, 10)))
+        if not lines:
+            lines = [""]
         latest = {"line": lines[-1], "tic": time.time()}
         while True:
             if self.heartbeat:
