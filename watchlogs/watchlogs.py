@@ -111,7 +111,7 @@ class Watcher:
                     msg = f"\r{summary} has had no update for {duration}"
                     print(msg, end="", flush=True)
             if self.conserve_resources:
-                time.sleep(1)
+                time.sleep(self.conserve_resources)
             try:
                 for line in self._watched_logs[path]["pygtail"]:
                     lines = [line.rstrip()]
@@ -145,7 +145,7 @@ def main():
                               "`pattern` will be used to glob for files"))
     parser.add_argument("--conserve_resources", type=int, default=1,
                         help=("if true, add a short sleep between log checks to reduce"
-                              "CPU load"))
+                              "CPU load (will wait for the give number of seconds)"))
     parser.add_argument("--heartbeat", type=int, default=1,
                         help=("if true, print out markers showing that the log watching"
                               "is still active"))
