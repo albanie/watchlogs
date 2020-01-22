@@ -26,7 +26,7 @@ Install via `pip install watchlogs`.  If you prefer to hack around with the sour
 ### Implementation
 
 
-`watchlogs` uses the [pygtail](https://github.com/bgreenlee/pygtail) library to monitor OS events.  
+`watchlogs` uses the [tailf](https://gitlab.com/trooniee/tailf) library to monitor OS events.  
 
 
 ### Dependencies
@@ -34,4 +34,4 @@ Install via `pip install watchlogs`.  If you prefer to hack around with the sour
 * `Python >= 3.6`
 * `seaborn`
 * `colored`
-* `pygtail`
+* `tailf`

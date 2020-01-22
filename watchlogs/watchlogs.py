@@ -1,54 +1,22 @@
 """A simple log file watcher to provide `tail -F` style functionality across multilple
 logfiles.  The syntax is simply: `watchlogs --log_files log1.txt,log2.txt,....`
-
-NOTE: We apply a small monkey patch to Pygtail to let us handle decoding errors more
-gracefully.
 """
 
 import sys
-import time
 import math
+import time
 import argparse
 import datetime
 import threading
-import numpy as np
 from pathlib import Path
 
+import numpy as np
+import psutil
 import colored
 import seaborn as sns
-from pygtail import Pygtail
 
+import tailf
 import humanize
-import psutil
-
-
-# =============================================================
-#  Monkey patching
-# =============================================================
-
-def _get_next_line(self):
-    """We catch the Unicode decoding issues and arbitrarily remap decode the bytes
-    as latin1.  There isn't much rationale to this.
-    """
-    curr_offset = self._filehandle().tell()
-    try:
-        line = self._filehandle().readline()
-    except UnicodeDecodeError:
-        prev_encoding = self._fh.encoding
-        self._fh.reconfigure(encoding="latin1")
-        line = self._filehandle().readline()
-        self._fh.reconfigure(encoding=prev_encoding)
-    if self._full_lines:
-        if not line.endswith('\n'):
-            self._filehandle().seek(curr_offset)
-            raise StopIteration
-    if not line:
-        raise StopIteration
-    self._since_update += 1
-    return line
-
-
-Pygtail._get_next_line = _get_next_line
 
 
 def memory_summary():
@@ -62,15 +30,16 @@ def memory_summary():
 
 class Watcher:
 
-    def __init__(self, watched_logs, conserve_resources, heartbeat, verbose=False):
+    def __init__(self, watched_logs, conserve_resources, heartbeat, prev_buffer_size,
+                 verbose=False):
         self._watched_logs = {}
         self.verbose = verbose
+        self.prev_buffer_size = prev_buffer_size
         self.heartbeat = heartbeat
         self.conserve_resources = conserve_resources
         colors = sns.color_palette("husl", len(watched_logs)).as_hex()
         self.last_path = None
 
-        # read contents of existing logs
         for path, color in zip(watched_logs, colors):
             path = Path(path).resolve()
             if not path.exists():
@@ -78,7 +47,7 @@ class Watcher:
                     f.write("")
             self._watched_logs[str(path)] = {
                 "color": color,
-                "pygtail": Pygtail(str(path), full_lines=False)
+                "tailf": tailf.Tail(str(path)),
             }
 
     def log_content(self, path, lines, last_mod=False):
@@ -94,8 +63,11 @@ class Watcher:
             self.last_path = path
 
     def watch_log(self, path, watcher_idx, total_watchers):
+        # print as much of the existing file as requested (via prev_buffer_size)
         with open(path, "r") as f:
             lines = f.read().splitlines()
+        if self.prev_buffer_size > -1:
+            lines = lines[-self.prev_buffer_size:]
         self.log_content(path, lines)
         num_digits = int(np.ceil(math.log(total_watchers, 10)))
         if not lines:
@@ -113,7 +85,13 @@ class Watcher:
             if self.conserve_resources:
                 time.sleep(self.conserve_resources)
             try:
-                for line in self._watched_logs[path]["pygtail"]:
+                for event in self._watched_logs[path]["tailf"]:
+                    if isinstance(event, bytes):
+                        line = event.decode("utf-8")
+                    elif event is tailf.Truncated:
+                        line = "File was truncated"
+                    else:
+                        assert False, "unreachable"
                     lines = [line.rstrip()]
                     self.log_content(path, lines)
                     latest = {"line": lines[-1], "tic": time.time()}
@@ -143,12 +121,15 @@ def main():
     parser.add_argument("--pattern",
                         help=("if supplied, --log_files should point to a directory and "
                               "`pattern` will be used to glob for files"))
-    parser.add_argument("--conserve_resources", type=int, default=1,
+    parser.add_argument("--conserve_resources", type=int, default=5,
                         help=("if true, add a short sleep between log checks to reduce"
                               "CPU load (will wait for the give number of seconds)"))
     parser.add_argument("--heartbeat", type=int, default=1,
                         help=("if true, print out markers showing that the log watching"
                               "is still active"))
+    parser.add_argument("--prev_buffer_size", type=int, default=20,
+                        help=("Print this many lines from the existing file.  If set to"
+                              "-1, print the entire file"))
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args()
     if args.pattern:
@@ -163,6 +144,7 @@ def main():
         verbose=args.verbose,
         watched_logs=watched_logs,
         heartbeat=args.heartbeat,
+        prev_buffer_size=args.prev_buffer_size,
         conserve_resources=args.conserve_resources,
     ).run()
 
