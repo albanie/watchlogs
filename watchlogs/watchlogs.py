@@ -30,7 +30,7 @@ def memory_summary():
 
 class Watcher:
 
-    def __init__(self, watched_logs, conserve_resources, heartbeat, prev_buffer_size,
+    def __init__(self, watched_logs, conserve_resources, heartbeat, prev_buffer_size=20,
                  verbose=False):
         self._watched_logs = {}
         self.verbose = verbose
