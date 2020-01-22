@@ -8,7 +8,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="watchlogs",
-    version="0.1.3.14",
+    version="0.1.3.16",
     entry_points={
         "console_scripts": [
             "watchlogs=watchlogs.watchlogs:main",
@@ -25,6 +25,8 @@ setuptools.setup(
         "colored",
         "seaborn",
         "tailf",
+        "psutil",
+        "humanize",
     ],
     classifiers=[
         "Programming Language :: Python :: 3.6",

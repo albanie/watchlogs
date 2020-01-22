@@ -35,3 +35,4 @@ Install via `pip install watchlogs`.  If you prefer to hack around with the sour
 * `seaborn`
 * `colored`
 * `tailf`
+* `psutil`
