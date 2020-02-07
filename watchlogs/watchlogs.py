@@ -63,9 +63,16 @@ class Watcher:
             self.last_path = path
 
     def watch_log(self, path, watcher_idx, total_watchers):
+        # Unicode is not very robust to broken line fragments, so we fall back to a
+        # more permissive (if inaccurate) encoding if UTF-8 fails
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                lines = f.read().splitlines()
+        except UnicodeDecodeError:
+            with open(path, "r", encoding="ISO-8859-1") as f:
+                lines = f.read().splitlines()
+            
         # print as much of the existing file as requested (via prev_buffer_size)
-        with open(path, "r") as f:
-            lines = f.read().splitlines()
         if self.prev_buffer_size > -1:
             lines = lines[-self.prev_buffer_size:]
         self.log_content(path, lines)
@@ -87,7 +94,10 @@ class Watcher:
             try:
                 for event in self._watched_logs[path]["tailf"]:
                     if isinstance(event, bytes):
-                        line = event.decode("utf-8")
+                        try:
+                            line = event.decode("utf-8")
+                        except UnicodeDecodeError:
+                            line = event.decode("ISO-8859-1")
                     elif event is tailf.Truncated:
                         line = "File was truncated"
                     else:
