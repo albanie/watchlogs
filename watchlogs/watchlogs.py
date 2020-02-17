@@ -55,7 +55,7 @@ class Watcher:
         for line in lines:
             summary = ""
             if path != self.last_path:
-                summary += f"{path} >>>\n"
+                summary += f"\n{path} >>>\n"
             summary += line
             if last_mod:
                 summary = f"[stale log] ({last_mod}): {summary}"
