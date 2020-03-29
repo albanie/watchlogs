@@ -6,17 +6,17 @@ import sys
 import math
 import time
 import argparse
-import datetime
 import threading
+from typing import Callable, Union, List
 from pathlib import Path
 
 import numpy as np
+import tailf
 import psutil
 import colored
 import seaborn as sns
-
-import tailf
 import humanize
+from typeguard import typechecked
 
 
 def memory_summary():
@@ -30,12 +30,20 @@ def memory_summary():
 
 class Watcher:
 
-    def __init__(self, watched_logs, conserve_resources, heartbeat, prev_buffer_size=20,
-                 verbose=False):
+    def __init__(
+            self,
+            watched_logs: List[Path],
+            conserve_resources: int,
+            heartbeat: bool,
+            prev_buffer_size: int = 20,
+            verbose: bool = False,
+            halting_condition: Callable = None,
+    ):
         self._watched_logs = {}
         self.verbose = verbose
         self.prev_buffer_size = prev_buffer_size
         self.heartbeat = heartbeat
+        self.halting_condition = halting_condition
         self.conserve_resources = conserve_resources
         colors = sns.color_palette("husl", len(watched_logs)).as_hex()
         self.last_path = None
@@ -62,16 +70,23 @@ class Watcher:
             print(colored.stylize(summary, colored.fg(color)), flush=True)
             self.last_path = path
 
-    def watch_log(self, path, watcher_idx, total_watchers):
+    @typechecked
+    def watch_log(
+            self,
+            path: Union[Path, str],
+            watcher_idx: int,
+            total_watchers: int,
+    ):
         # Unicode is not very robust to broken line fragments, so we fall back to a
         # more permissive (if inaccurate) encoding if UTF-8 fails
         try:
             with open(path, "r", encoding="utf-8") as f:
                 lines = f.read().splitlines()
+
         except UnicodeDecodeError:
             with open(path, "r", encoding="ISO-8859-1") as f:
                 lines = f.read().splitlines()
-            
+
         # print as much of the existing file as requested (via prev_buffer_size)
         if self.prev_buffer_size > -1:
             lines = lines[-self.prev_buffer_size:]
@@ -81,6 +96,8 @@ class Watcher:
             lines = [""]
         latest = {"line": lines[-1], "tic": time.time()}
         while True:
+            if self.halting_condition is not None and self.halting_condition():
+                return
             if self.heartbeat:
                 if latest["line"] == lines[-1]:
                     delta = time.time() - latest["tic"]
@@ -141,6 +158,8 @@ def main():
                         help=("Print this many lines from the existing file.  If set to"
                               "-1, print the entire file"))
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--max_duration_secs", type=int, default=0,
+                        help="if given, only watch files for at most this duration")
     args = parser.parse_args()
     if args.pattern:
         msg = "if args.pattern is supplied, args.log_files should point to a directory"
@@ -148,14 +167,24 @@ def main():
         watched_logs = sorted(list(Path(args.log_files).glob(f"*{args.pattern}")))
         print(f"Found {len(watched_logs)} matching pattern: {args.pattern}")
     else:
-        watched_logs = args.log_files.split(",")
+        watched_logs = [Path(x) for x in args.log_files.split(",")]
     memory_summary()
+
+    if args.max_duration_secs:
+        init_time = time.time()
+
+        def halting_condition():
+            return time.time() - init_time > args.max_duration_secs
+    else:
+        halting_condition = None
+
     Watcher(
         verbose=args.verbose,
         watched_logs=watched_logs,
-        heartbeat=args.heartbeat,
+        heartbeat=bool(args.heartbeat),
         prev_buffer_size=args.prev_buffer_size,
         conserve_resources=args.conserve_resources,
+        halting_condition=halting_condition,
     ).run()
 
 
