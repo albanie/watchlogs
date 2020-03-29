@@ -1,6 +1,5 @@
-import sys
-from distutils.util import get_platform
 import setuptools
+
 
 with open("README.md", "r") as f:
     long_description = f.read()
@@ -8,7 +7,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="watchlogs",
-    version="0.1.3.20",
+    version="0.1.3.21",
     entry_points={
         "console_scripts": [
             "watchlogs=watchlogs.watchlogs:main",
