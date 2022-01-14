@@ -22,7 +22,7 @@ setuptools.setup(
     python_requires=">=3.6",
     install_requires=[
         "colored",
-        "seaborn",
+        "hsluv",
         "tailf",
         "psutil",
         "humanize",

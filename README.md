@@ -32,7 +32,7 @@ Install via `pip install watchlogs`.  If you prefer to hack around with the sour
 ### Dependencies
 
 * `Python >= 3.6`
-* `seaborn`
+* `hsluv`
 * `colored`
 * `tailf`
 * `psutil`

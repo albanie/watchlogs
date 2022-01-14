@@ -10,11 +10,9 @@ import threading
 from typing import Callable, Union, List
 from pathlib import Path
 
-import numpy as np
 import tailf
 import psutil
 import colored
-import seaborn as sns
 import humanize
 from typeguard import typechecked
 
@@ -26,6 +24,14 @@ def memory_summary():
         f"{humanize.naturalsize(vmem.used)}/{humanize.naturalsize(vmem.available)}"
     )
     print(msg)
+
+
+def get_colors(n_colors):
+    import hsluv
+    return [
+        hsluv.hpluv_to_hex((idx * 360.0 / n_colors, 90, 65))
+        for idx in range(n_colors)
+    ]
 
 
 class Watcher:
@@ -45,7 +51,7 @@ class Watcher:
         self.heartbeat = heartbeat
         self.halting_condition = halting_condition
         self.conserve_resources = conserve_resources
-        colors = sns.color_palette("husl", len(watched_logs)).as_hex()
+        colors = get_colors(len(watched_logs))
         self.last_path = None
 
         for path, color in zip(watched_logs, colors):
@@ -91,7 +97,7 @@ class Watcher:
         if self.prev_buffer_size > -1:
             lines = lines[-self.prev_buffer_size:]
         self.log_content(path, lines)
-        num_digits = int(np.ceil(math.log(total_watchers, 10)))
+        num_digits = math.ceil(math.log(total_watchers, 10))
         if not lines:
             lines = [""]
         latest = {"line": lines[-1], "tic": time.time()}
